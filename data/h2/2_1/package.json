@@ -1,0 +1,14 @@
+{
+  "name": "2_1",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "xss-filters": "^1.2.7"
+  }
+}

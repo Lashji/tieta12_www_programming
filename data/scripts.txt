@@ -1,0 +1,5 @@
+Nodemon:
+    nodemon -L -P 1000 server.js
+
+
+    
