@@ -17,7 +17,7 @@ http
             req.end();
         });
 
-        req.on("error", e => {
+        res.on("error", e => {
             console.log(e);
         })
 
@@ -26,55 +26,43 @@ http
     .listen(port);
 
 const handleRequest = (req, res, path) => {
-    switch (req.method) {
-        case "GET":
-            if (path == "/data/export") {
-                fs.readFile(fileName, (err, data) => {
-                    if (err) throw err;
 
-                    res.statusCode = 200;
-                    res.end(xssFilters.inHTMLData(data));
+
+    if (req.method == "GET" && path == "/data/export") {
+        fs.readFile(fileName, (err, data) => {
+            if (err) throw err;
+
+            res.statusCode = 200;
+            res.end(xssFilters.inHTMLData(data));
+        });
+    } else if (req.method == "PUT" && path == "/data/import") {
+        let body = [];
+        req.on("error", e => {
+                console.log(e);
+            })
+            .on("data", chunk => {
+                body.push(chunk);
+            })
+            .on("end", () => {
+                res.on("error", err => {
+                    console.log(err);
                 });
-            } else {
-                notFound(res);
-            }
-            break;
-        case "PUT":
-            if (path == "/data/import") {
-                let body = [];
-                req.on("error", e => {
-                        console.log(e);
-                    })
-                    .on("data", chunk => {
-                        body.push(chunk);
-                    })
-                    .on("end", () => {
-                        res.on("error", err => {
-                            console.log(err);
-                        });
-                        let file = fs.createWriteStream(fileName, {
-                            flags: "a", //append
-                        });
-                        body = Buffer.concat(body).toString();
+                let file = fs.createWriteStream(fileName, {
+                    flags: "a", //append
+                });
+                body = Buffer.concat(body).toString();
 
-                        file.write(body);
-                        file.write("\n");
-                        file.end();
+                file.write(body);
+                file.write("\n");
+                file.end();
 
-                        res.statusCode = 200;
-                        res.end();
-                    });
-            } else {
-                notFound(res);
-            }
-            break;
-        default:
-            notFound(res);
-            break;
+                res.statusCode = 200;
+                res.end();
+            });
+    } else {
+        res.statusCode = 404;
+        res.end();
     }
-};
 
-const notFound = res => {
-    res.statusCode = 404;
-    res.end();
+
 };

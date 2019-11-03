@@ -15,21 +15,25 @@ router.get('/texts/:filename', (req, res) => {
         res.statusCode = 404;
         res.end()
     }
+    try {
 
-    fs.readFile(fileName, (err, data) => {
+        fs.readFile(fileName, (err, data) => {
 
-        if (err) {
-            res.statusCode = 404
-            res.end()
-            return
-        }
+            if (err) {
+                res.statusCode = 404
+                res.end()
+                return
+            }
 
-        res.setHeader("Content-Type", "text/plain");
-        res.statusCode = 200;
-        res.end(xssFilters.inHTMLData(data));
-    });
+            res.setHeader("Content-Type", "text/plain");
+            res.statusCode = 200;
+            res.end(xssFilters.inHTMLData(data));
+        });
 
-
+    } catch (error) {
+        res.statusCode = 404;
+        res.end()
+    }
 })
 
 router.post('/texts', (req, res) => {
