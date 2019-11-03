@@ -1,41 +1,80 @@
-const http = require("http")
-const xxsFilters = require("xss-filters")
-const fs = require("fs")
-const port = 3000
+const http = require("http");
+const fileName = "./db";
+const xssFilters = require("xss-filters");
+const fs = require("fs");
+const port = 3000;
 
+http
+    .createServer((req, res) => {
+        let fullUrl = "http://" + "none" + req.url;
+        let url = new URL(fullUrl);
 
-http.createServer((req, res) => {
+        res.setHeader("Content-Type", "text/plain");
 
-    let fullUrl = 'http://' + 'none' + req.url;
-    let url = new URL(fullUrl);
+        req.on("error", err => {
+            console.log(err);
+            req.statusCode = 400;
+            req.end();
+        });
 
-    handleRequest(req.method, url.pathname, res)
-    console.log(url)
+        req.on("error", e => {
+            console.log(e);
+        })
 
-}).listen(port)
+        handleRequest(req, res, url.pathname);
+    })
+    .listen(port);
 
-
-const handleRequest = (method, path, res) => {
-
-
-    switch (method) {
+const handleRequest = (req, res, path) => {
+    switch (req.method) {
         case "GET":
             if (path == "/data/export") {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('EXPORTING');
+                fs.readFile(fileName, (err, data) => {
+                    if (err) throw err;
+
+                    res.statusCode = 200;
+                    res.end(xssFilters.inHTMLData(data));
+                });
+            } else {
+                notFound(res);
             }
-            break
+            break;
         case "PUT":
             if (path == "/data/import") {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'text/plain');
-                res.end('importing');
+                let body = [];
+                req.on("error", e => {
+                        console.log(e);
+                    })
+                    .on("data", chunk => {
+                        body.push(chunk);
+                    })
+                    .on("end", () => {
+                        res.on("error", err => {
+                            console.log(err);
+                        });
+                        let file = fs.createWriteStream(fileName, {
+                            flags: "a", //append
+                        });
+                        body = Buffer.concat(body).toString();
+
+                        file.write(body);
+                        file.write("\n");
+                        file.end();
+
+                        res.statusCode = 200;
+                        res.end();
+                    });
+            } else {
+                notFound(res);
             }
-
-            break
+            break;
+        default:
+            notFound(res);
+            break;
     }
+};
 
-
-
-}
+const notFound = res => {
+    res.statusCode = 404;
+    res.end();
+};
