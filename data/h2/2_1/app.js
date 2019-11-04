@@ -28,22 +28,19 @@ http
 const handleRequest = (req, res, path) => {
 
     if (req.method == "GET" && path == "/data/export") {
-        try {
 
+        fs.readFile(fileName, (err, data) => {
+            if (err) {
+                console.log("404 File db not found")
+                res.statusCode = 404
+                res.end("Error when making request. Please try to post data before requesting it")
+                return
+            }
 
-            fs.readFile(fileName, (err, data) => {
-                if (err) {
-                    res.statusCode = 404
-                    res.end()
-                }
+            res.statusCode = 200;
+            res.end(xssFilters.inHTMLData(data));
+        });
 
-                res.statusCode = 200;
-                res.end(xssFilters.inHTMLData(data));
-            });
-        } catch (e) {
-            res.statusCode = 400
-            res.end()
-        }
     } else if (req.method == "PUT" && path == "/data/import") {
         let body = [];
         req.on("error", e => {

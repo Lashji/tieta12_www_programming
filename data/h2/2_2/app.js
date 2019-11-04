@@ -13,8 +13,12 @@ router.get("/resources", (req, res) => {
     res.setHeader("Content-Type", "text/plain");
 
     fs.readFile(fileName, (err, data) => {
-        if (err) throw err;
-
+        if (err) {
+            console.log("404 file not found")
+            res.statusCode = 404
+            res.end("Error when making request. Please try to post data before requesting it")
+            return
+        }
         res.statusCode = 200;
         res.end(xssFilters.inHTMLData(data));
     });

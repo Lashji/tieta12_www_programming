@@ -15,25 +15,23 @@ router.get('/texts/:filename', (req, res) => {
         res.statusCode = 404;
         res.end()
     }
-    try {
 
-        fs.readFile(fileName, (err, data) => {
 
-            if (err) {
-                res.statusCode = 404
-                res.end()
-                return
-            }
+    fs.readFile(fileName, (err, data) => {
 
-            res.setHeader("Content-Type", "text/plain");
-            res.statusCode = 200;
-            res.end(xssFilters.inHTMLData(data));
-        });
+        if (err) {
+            console.log("Error when making request")
+            res.statusCode = 404
+            res.end("Error when making request. Please try to post data before requesting it")
+            return
+        }
 
-    } catch (error) {
-        res.statusCode = 404;
-        res.end()
-    }
+        res.setHeader("Content-Type", "text/plain");
+        res.statusCode = 200;
+        res.end(xssFilters.inHTMLData(data));
+    });
+
+
 })
 
 router.post('/texts', (req, res) => {
