@@ -27,14 +27,23 @@ http
 
 const handleRequest = (req, res, path) => {
 
-
     if (req.method == "GET" && path == "/data/export") {
-        fs.readFile(fileName, (err, data) => {
-            if (err) throw err;
+        try {
 
-            res.statusCode = 200;
-            res.end(xssFilters.inHTMLData(data));
-        });
+
+            fs.readFile(fileName, (err, data) => {
+                if (err) {
+                    res.statusCode = 404
+                    res.end()
+                }
+
+                res.statusCode = 200;
+                res.end(xssFilters.inHTMLData(data));
+            });
+        } catch (e) {
+            res.statusCode = 400
+            res.end()
+        }
     } else if (req.method == "PUT" && path == "/data/import") {
         let body = [];
         req.on("error", e => {
