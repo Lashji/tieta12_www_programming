@@ -4,13 +4,15 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "nodemon": "nodemon -L -P 1000 server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cookie-parser": "^1.4.4",
     "express": "^4.17.1",
-    "express-sanitizer": "^1.0.5"
+    "express-sanitizer": "^1.0.5",
+    "xss-filters": "^1.2.7"
   }
 }
