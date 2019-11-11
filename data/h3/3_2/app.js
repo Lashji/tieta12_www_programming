@@ -57,13 +57,15 @@ app.get("/setBgColor", (req, res) => {
 
 app.post("/viewBgColor", (req, res) => {
     console.log("/viewBgColor session = ", req.session)
+    console.log("req = ", req.body)
+    color = req.sanitize(req.session.currentColor)
     let form = `<!doctype html>
         <html lang="en">
         <head>
         <meta charset="utf-8">
         <title>Set the color</title>
         </head>
-        <body style="background-color: ${req.session.currentColor}">
+        <body style="background-color: ${color}">
         <form action="/viewBgColor" method="POST">
         <input type="color" id="newColor" name="newColor" >
         <button type="submit">Submit</button>
