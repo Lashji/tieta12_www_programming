@@ -44,41 +44,15 @@ app.use(express.urlencoded())
 app.use(sanitizer())
 
 
-// Authentication
-app.use((req, res, next) => {
 
-    if (req.path !== "/login" || req.method !== "POST") {
-        next()
+
+app.get("/login", csrfProtection, (req, res) => {
+
+    if (req.session.userID !== undefined) {
+        res.status(304).redirect(`/quality_content/${req.session.userID}`)
         return
     }
-    user = authenticate(req)
-    if (user) {
-        if (!req.session.userID) {
-            req.session.userID = user.id
-            req.session.loggedInUser = user
-        }
-        next()
-    } else {
-        req.method = "GET"
-        res.status(304).redirect("/login")
 
-    }
-
-})
-
-const authenticate = (req) => {
-    let sanitizedUsername = req.sanitize(req.body.username)
-    let sanitizedPassword = req.sanitize(req.body.password)
-
-    let found = users.find(({
-        username,
-        password
-    }) => username === sanitizedUsername && password === sanitizedPassword)
-
-    return found
-}
-// Image 1
-app.get("/login", csrfProtection, (req, res) => {
     res.setHeader("Content-Type", "text/html")
     let form = `
     <!doctype html>
@@ -101,15 +75,38 @@ app.get("/login", csrfProtection, (req, res) => {
     })
 
 })
+
+const authenticate = (req) => {
+    let sanitizedUsername = req.sanitize(req.body.username)
+    let sanitizedPassword = req.sanitize(req.body.password)
+
+    let found = users.find(({
+        username,
+        password
+    }) => username === sanitizedUsername && password === sanitizedPassword)
+
+    return found
+}
+
 app.post("/login", csrfProtection, (req, res) => {
+
+    user = authenticate(req)
     req.method = "GET"
 
-    if (req.session.userID != undefined) {
-        res.status(304).redirect(`/quality_content/${req.session.userID}`)
-    } else {
-        res.status(304).redirect(`/login`)
+    if (user) {
+        if (!req.session.userID) {
+            req.session.userID = user.id
+            req.session.loggedInUser = user
+        }
 
+        res.status(304).redirect(`/quality_content/${req.session.userID}`)
+
+    } else {
+        res.status(304).redirect("/login")
+        return
     }
+
+
 })
 
 // Image 2
