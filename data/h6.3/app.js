@@ -20,26 +20,48 @@ db.once("open", () => console.log("connected to database"));
 app.use(helmet());
 app.use(express.json());
 
-const authenticate = async (req, res, next) => {
-  console.log("authenticating");
-  if (req.path === "/user") next();
-  console.log("authenticating 2");
-  console.log("body=", req.body);
-  const username = req.body.username;
-  const password = req.body.password;
 
+const authFailed = res => {
+  console.log("auth failed");
+  return res
+    .set("WWW-Authenticate", "Basic realm=Authorization Required")
+    .sendStatus(401);
+};
+
+const authenticate = async (req, res, next) => {
+  console.log(req.body)
+  console.log("authenticating");
+  if (req.path === "/api/users/" && req.method === "POST") return next();
+
+  if (!req.headers.authorization) {
+    console.log("auth failed at header check")
+    authFailed(res)
+    return
+  }
+  console.log("body=", req.body);
+  const encodedHeader = req.headers.authorization.split(' ')[1];
+  const decodedHeader = new Buffer(encodedHeader, 'base64').toString();
+  const username = decodedHeader.split(':')[0];
+  const password = decodedHeader.split(':')[1];
+  console.log("un", username)
+  console.log("pw", password)
   const user = await User.findOne({
     username
   }).exec();
   console.log("User: ", user);
   if (!user) {
-    res.status(403).end();
+    authFailed(res);
     return;
   }
 
-  let authenticateSuccesful = user.checkPassword(password);
-  if (!authenticateSuccesful) return res.status(403).end();
+  let authenticateSuccesful = await user.checkPassword(password);
 
+  if (!authenticateSuccesful) {
+    authFailed(res);
+    return;
+  }
+
+  console.log("Authenticating succesfull");
   next();
 };
 
@@ -96,7 +118,7 @@ api.post("/players", async (req, res) => {
     active: req.body.active
   });
 
-  await player.save(function(err, player) {
+  await player.save(function (err, player) {
     if (err) return console.error(err);
     console.log(player.name + " saved to players collection.");
   });
@@ -144,12 +166,10 @@ api.put("/players/:id", async (req, res) => {
 
   console.log("updatedPlayer", updatedPlayer);
   try {
-    player = await Player.findOneAndUpdate(
-      {
+    player = await Player.findOneAndUpdate({
         _id: req.params.id
       },
-      updatedPlayer,
-      {
+      updatedPlayer, {
         new: true, // returns the new player
         useFindAndModify: false //using newer mongodb driver instead
       }
@@ -161,6 +181,25 @@ api.put("/players/:id", async (req, res) => {
   player = addLink(player, true);
   res.json(player);
 });
+
+
+api.post("/users", async (req, res) => {
+  console.log("/users", req.body)
+  if (!Object.keys(req.body).length) return res.sendStatus(400)
+
+  const username = req.body.username;
+  const password = req.body.password;
+
+  const user = new User({
+    username,
+    password
+  })
+
+  let save = await user.save();
+  console.log("save", save)
+
+  return res.sendStatus(201)
+})
 
 const addLink = (player, linkRoot) => {
   let link = player.link;
