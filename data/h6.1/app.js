@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 const helmet = require("helmet");
 const mongoose = require("mongoose");
-const Player = require("./models/player");
+const Player = require("./player");
 var api = express.Router();
 const ALL_PLAYERS_HREF = "http://localhost:3000/api/players"
 

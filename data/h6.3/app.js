@@ -3,8 +3,8 @@ const express = require("express");
 const app = express();
 const helmet = require("helmet");
 const mongoose = require("mongoose");
-const Player = require("./models/player");
-const User = require("./models/user");
+const Player = require("./player");
+const User = require("./user");
 var api = express.Router();
 const ALL_PLAYERS_HREF = "http://localhost:3000/api/players";
 
@@ -38,17 +38,16 @@ const authenticate = async (req, res, next) => {
     authFailed(res)
     return
   }
-  console.log("body=", req.body);
+
   const encodedHeader = req.headers.authorization.split(' ')[1];
   const decodedHeader = new Buffer(encodedHeader, 'base64').toString();
   const username = decodedHeader.split(':')[0];
   const password = decodedHeader.split(':')[1];
-  console.log("un", username)
-  console.log("pw", password)
+
   const user = await User.findOne({
     username
   }).exec();
-  console.log("User: ", user);
+
   if (!user) {
     authFailed(res);
     return;
@@ -72,9 +71,13 @@ api.get("/players/:id", async (req, res) => {
   try {
     player = await Player.findById(req.params.id);
   } catch (e) {
+    console.log("error finding player")
     handleError(res, e);
     return;
   }
+
+  if (!player) return res.status(404).end()
+
   player = addLink(player, true);
   res.json(player);
 });
@@ -119,7 +122,7 @@ api.post("/players", async (req, res) => {
   });
 
   await player.save(function (err, player) {
-    if (err) return console.error(err);
+    if (err) return res.end("error while saving new player: ", err);
     console.log(player.name + " saved to players collection.");
   });
 
@@ -158,12 +161,10 @@ api.delete("/players/:id", async (req, res) => {
 });
 
 api.put("/players/:id", async (req, res) => {
-  console.log("body", req.body);
   let player;
   let updatedPlayer = {};
   if (req.body.name) updatedPlayer.name = req.body.name;
   if (req.body.active != undefined) updatedPlayer.active = req.body.active;
-
   console.log("updatedPlayer", updatedPlayer);
   try {
     player = await Player.findOneAndUpdate({
@@ -195,8 +196,10 @@ api.post("/users", async (req, res) => {
     password
   })
 
-  let save = await user.save();
-  console.log("save", save)
+  let save = await user.save((err) => {
+    if (err) return res.end("error while saving new user:", err)
+    console.log("new user saved to db")
+  });
 
   return res.sendStatus(201)
 })
