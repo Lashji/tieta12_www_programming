@@ -14,8 +14,8 @@
 <body>
 	<div id="root"></div>
 	<script type="text/babel">
-
-
+		const { useState, useEffect } = React;
+		
 
 		const Player = ({data, onClick}) => {
 			return (
@@ -27,8 +27,8 @@
 
 		const Players = ({data, onClick}) => {
 			let players 
-
 			if (data.players){
+				console.log("data", data.players)
 				players = data.players.map(i => {
 					return <Player onClick={onClick} key={i._id} data={i} />})
 				}
@@ -41,14 +41,61 @@
 				</ul>
 			)
 		}
+
+		const Form = ({updatePlayers}) => {
+			const [value, setValue] = useState("")
+			const [active, setActive] = useState(false)
+
+			const handleSubmit = (e) => {
+				e.preventDefault()
+	
+				const ojbectData = {
+					name:value,
+					active:active
+				}
+
+				fetch("http://localhost:3000/api/players", {
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': "application/json"
+					},
+					method: "POST",
+					cache: "no-cache",
+					body: JSON.stringify(ojbectData)
+				})
+				.then(res => {
+					console.log("res", res)
+					return res.json()
+				})
+				.then(res => {
+					updatePlayers()
+				})
+
+				console.log("submit")
+			}
+
+			
+			
+			return (
+				<form onSubmit={handleSubmit}>
+					<label>Name: </label>
+					<input onChange={e => setValue(e.target.value)} type="text"/> 
+					<label >Active: </label>
+					<input  onChange={e => setActive(e.target.checked)||console.log(e.target.checked)} type="checkbox" />
+					<input type="submit" value="Add Player"/>
+				</form>
+			)
+
+		}
 		
-		const ClickedPlayer= ({data})=>{
+		const ClickedPlayer= ({data, handleDelete})=>{
 			let player
-			console.log(data)
+
+			console.log("clicked", data)
 			if (Object.keys(data).length !== 0){
 				player = (
-					<div><p>Player: {data.name}</p>
-						<p> Active: {""+data.active}</p>
+					<div>
+						<p>Player: {data.clicked.name} Active: {""+data.clicked.active} <button onClick={() => handleDelete(data.clicked)}>Delete</button></p>
 					</div>
 					)
 				}
@@ -62,39 +109,47 @@
 		}
 
 
-		class App extends React.Component {
+		const App = () => {
 
-			constructor(props){
-				super(props)
+			const [players, setPlayers] = useState([])
+			const [clicked, setClicked] = useState({})
+			
 
-				this.state = {
-					players : [],
-					clicked: {}
-				}
-			}
-
-			handleClick = (data)=> {
+			const handleClick = (data)=> {
+				console.log("handleClick", data)
 				fetch(data.links.self.href)
 				.then(res => res.json())
-				.then(res => this.setState({clicked:res}))
+				.then(res => setClicked({clicked:res}))
 			}
 
-			componentDidMount() {
+			useEffect(() =>  {
+				console.log("use effect")
+				getPlayersData()
+			}, [])
+
+			const getPlayersData = (player={}) => {
 				fetch("http://localhost:3000/api/players")
 				.then(res => res.json())
-				.then(res =>  this.setState({players:res.players}) || console.log(res.players))
+				.then(res =>  setPlayers(res.players) || console.log(res.players))
+				.then(res => setClicked(player))
 			}
 
-			render(){
+			const handleDelete = async (data) => {
 
-
-				return (
-					<div>
-						<Players onClick={this.handleClick}  data={this.state.players} />
-						<ClickedPlayer data={this.state.clicked}/>
-					</div>
-				)
+				await fetch(data.links.self.href, {
+					method: "delete"
+				})
+				getPlayersData()
 			}
+
+			return (
+				<div>
+					<h1>Players</h1>
+					<Players onClick={handleClick}  data={players} />
+					<ClickedPlayer handleDelete={handleDelete} data={clicked}/>
+					<Form updatePlayers={getPlayersData} />
+				</div>
+			)
 
 		}
 
