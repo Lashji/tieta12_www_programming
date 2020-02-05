@@ -16,7 +16,6 @@ const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
 db.once("open", () => console.log("connected to database"));
 
-
 app.use(helmet());
 app.use(express.json());
 
@@ -25,7 +24,7 @@ const staticOptions = {
   dotfiles: 'ignore'
 }
 
-app.use('/', express.static(__dirname + "/"))
+app.use('/', express.static(__dirname + "/public"))
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", '*')
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
@@ -79,8 +78,6 @@ api.get("/players", async (req, res) => {
 });
 
 api.post("/players", async (req, res) => {
-  console.log("body", req.body)
-
   let player = new Player({
     name: req.body.name,
     active: req.body.active
@@ -92,7 +89,7 @@ api.post("/players", async (req, res) => {
   });
 
   player = addLink(player, true);
-  console.log("sending player back: ", player)
+
   res.json(player);
 });
 

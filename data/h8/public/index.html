@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Hello World</title>
+	<script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+	<script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+
+	<!-- Don't use this in production: -->
+	<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body>
+	<div id="root"></div>
+	<script type="text/babel">
+
+
+
+		const Player = ({data, onClick}) => {
+			return (
+				<li>
+					<button onClick={() => onClick(data)}>{data.name}</button>
+				</li>
+			)
+		}
+
+		const Players = ({data, onClick}) => {
+			let players 
+
+			if (data.players){
+				players = data.players.map(i => {
+					return <Player onClick={onClick} key={i._id} data={i} />})
+				}
+			else
+				players = <div></div>
+
+			return (
+				<ul>
+					{players}
+				</ul>
+			)
+		}
+		
+		const ClickedPlayer= ({data})=>{
+			let player
+			console.log(data)
+			if (Object.keys(data).length !== 0){
+				player = (
+					<div><p>Player: {data.name}</p>
+						<p> Active: {""+data.active}</p>
+					</div>
+					)
+				}
+			else {
+				player = <div></div>
+			}
+
+			return (
+				<div>{player}</div>
+			)
+		}
+
+
+		class App extends React.Component {
+
+			constructor(props){
+				super(props)
+
+				this.state = {
+					players : [],
+					clicked: {}
+				}
+			}
+
+			handleClick = (data)=> {
+				fetch(data.links.self.href)
+				.then(res => res.json())
+				.then(res => this.setState({clicked:res}))
+			}
+
+			componentDidMount() {
+				fetch("http://localhost:3000/api/players")
+				.then(res => res.json())
+				.then(res =>  this.setState({players:res.players}) || console.log(res.players))
+			}
+
+			render(){
+
+
+				return (
+					<div>
+						<Players onClick={this.handleClick}  data={this.state.players} />
+						<ClickedPlayer data={this.state.clicked}/>
+					</div>
+				)
+			}
+
+		}
+
+
+
+	ReactDOM.render(
+	<App/>,
+	document.getElementById('root')
+	);
+
+	</script>
+</body>
+
+</html>
