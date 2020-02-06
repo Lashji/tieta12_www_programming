@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Hello World</title>
+	<script src="https://unpkg.com/react@16/umd/react.development.js"></script>
+	<script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+
+	<!-- Don't use this in production: -->
+	<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body>
+	<div id="root"></div>
+	<script type="text/babel">
+		const { useState, useEffect } = React;
+		
+
+		const Player = ({data, onClick}) => {
+			return (
+				<li>
+					<button onClick={() => onClick(data)}>{data.name}</button>
+				</li>
+			)
+		}
+
+		const Players = ({data, onClick}) => {
+			let players 
+			if (data.players){
+				console.log("data", data.players)
+				players = data.players.map(i => {
+					return <Player onClick={onClick} key={i._id} data={i} />})
+				}
+			else
+				players = <div></div>
+
+			return (
+				<ul>
+					{players}
+				</ul>
+			)
+		}
+
+		const Form = ({updatePlayers, username, password}) => {
+			const [value, setValue] = useState("")
+			const [active, setActive] = useState(false)
+
+			const handleSubmit = (e) => {
+				e.preventDefault()
+	
+				const ojbectData = {
+					name:value,
+					active:active
+				}
+
+				fetch("http://localhost:3000/api/players", {
+					headers: {
+						'Accept': 'application/json',
+						'Content-Type': "application/json",
+						"Authorization": "Basic " + btoa(username+":"+password)
+					},
+					method: "POST",
+					cache: "no-cache",
+					body: JSON.stringify(ojbectData)
+				})
+				.then(res => {
+					console.log("res", res)
+					return res.json()
+				})
+				.then(res => {
+					updatePlayers()
+				})
+
+				console.log("submit")
+			}
+
+			
+			
+			return (
+				<form onSubmit={handleSubmit}>
+					<label>Name: </label>
+					<input onChange={e => setValue(e.target.value)} type="text"/> 
+					<label >Active: </label>
+					<input  onChange={e => setActive(e.target.checked)||console.log(e.target.checked)} type="checkbox" />
+					<input type="submit" value="Add Player"/>
+				</form>
+			)
+
+		}
+		const RegisterForm = () => {
+			const [user, setUser] = useState()
+			const [pw, setPw] = useState()
+
+			const handleSubmit = (e)=>{
+				e.preventDefault()
+				console.log("user", user)
+				console.log("pw", pw)
+				fetch("http://localhost:3000/api/users/", {
+					headers:{
+						'Accept': 'application/json',
+						'Content-Type': "application/json",
+					},
+					method:"post",
+					cache: "no-cache",
+					body:JSON.stringify(
+						{
+							username:user,
+							password:pw
+						}
+					)
+					
+				})
+
+			}
+
+			
+
+			return (
+				<div>
+					<h2>Register</h2>
+					<form onSubmit={e => handleSubmit(e)}>
+						Name: <input onChange={e => setUser(e.target.value)} type="text"/>
+						Password: <input onChange={e => setPw(e.target.value)} type="password"/>
+						<input type="submit" value="Register"/>
+					</form>
+				</div>
+			)
+		}
+
+		const AuthForm = ({handleAuth}) => {
+
+			return (
+				<div>
+					<h2>Login</h2>
+					<form>
+						Name: <input name="username" onChange={e => handleAuth(e)} type="text"/>
+						Password: <input name="password" onChange={e => handleAuth(e)} type="password"/>
+					</form>
+				</div>
+			)
+		}
+		
+		const ClickedPlayer= ({data, handleDelete})=>{
+			let player
+
+			console.log("clicked", data)
+			if (Object.keys(data).length !== 0){
+				player = (
+					<div>
+						<p>Player: {data.clicked.name} Active: {""+data.clicked.active} <button onClick={() => handleDelete(data.clicked)}>Delete</button></p>
+					</div>
+					)
+				}
+			else {
+				player = <div></div>
+			}
+
+			return (
+				<div>{player}</div>
+			)
+		}
+
+
+		const App = () => {
+
+			const [players, setPlayers] = useState([])
+			const [clicked, setClicked] = useState({})
+			const [authenticated, setAuthenticated] = useState(false)
+			const [username, setUsername] = useState()
+			const [password, setPassword] = useState()
+
+			const handleClick = (data)=> {
+				console.log("handleClick", data)
+				fetch(data.links.self.href, {
+					headers: {
+						"Authorization": "Basic " + btoa(username+":"+password)
+					}
+				})
+				.then(res => res.json())
+				.then(res => setClicked({clicked:res}))
+			}
+
+			
+
+			const getPlayersData = (player={}) => {
+				if (!authenticated)
+					return
+
+				let headers = new Headers()
+				headers.set("Authorization", "Basic " + btoa(username+":"+password))
+
+				fetch("http://localhost:3000/api/players",{
+					headers:headers
+				})
+				.then(res => {
+					if (res.status !== 200)
+						return
+
+					return res.json()
+
+				})
+				.then(res => console.log("res players",res.players) ||setPlayers(res.players)  )
+				.then(res => setClicked(player))
+			}
+
+			const handleDelete = async (data) => {
+
+				await fetch(data.links.self.href, {
+					headers:{
+						"Authorization": "Basic " + btoa(username+":"+password)
+					},
+					method: "delete"
+				})
+				getPlayersData()
+			}
+
+			useEffect(() =>{
+				console.log("useEffect")
+				let headers = new Headers()
+				headers.set("Authorization", "Basic " + btoa(username+":"+password))
+
+				fetch("http://localhost:3000/api/players", {
+					headers:headers,
+					method:"get"	
+				})
+				.then(res => {
+					console.log("post res",res)
+					setAuthenticated(res.status === 200)
+				})
+
+
+			},[username, password])
+
+			let page
+			useEffect(() =>  {
+				console.log("use effect")
+				getPlayersData()
+			}, [authenticated])
+
+			if (authenticated){
+
+
+				page = (
+					<div>
+						<Players onClick={handleClick}  data={players} />
+						<ClickedPlayer handleDelete={handleDelete} data={clicked}/>
+						<Form username={username} password={password} updatePlayers={getPlayersData} />
+					</div>
+				)
+			}else{
+				page = (
+					<RegisterForm/>
+				)
+			}
+
+			const handleAuthenticate = async (e) => {
+				if (e.target.name === 'username'){
+					await setUsername(e.target.value)
+				} else if (e.target.name === 'password'){
+					await setPassword(e.target.value)
+				}
+			}
+
+
+			return (
+				<div>
+					<h1>Players</h1>
+					<AuthForm handleAuth={handleAuthenticate} />
+					{page}
+				</div>
+			)
+
+		}
+
+
+
+	ReactDOM.render(
+	<App/>,
+	document.getElementById('root')
+	);
+
+	</script>
+</body>
+
+</html>
