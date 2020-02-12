@@ -1,0 +1,60 @@
+<script src="https://unpkg.com/redux@latest/dist/redux.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+<script type="text/babel">
+	const { createStore, combineReducers } = Redux;
+	const ADD_PLAYER = 'ADD_PLAYER'
+	const DELETE_PLAYER = 'DELETE_PLAYER'
+	const CHANGE_PLAYER_ACTIVE = 'CHANGE_PLAYER_ACTIVE'
+	const initialState  = {
+		players:[]
+	}
+	const addPlayer = (player) => {
+		return {type:ADD_PLAYER, player:player }
+	}
+	const deletePlayer = (id) => {
+		return {type:DELETE_PLAYER, id:id }
+	}
+	const changePlayerActivity = (data) => {
+		return {type:CHANGE_PLAYER_ACTIVE, data:data }
+	}
+
+
+	const playerApp = (state = initialState, action) => {
+		switch(action.type){
+			case ADD_PLAYER:
+				console.log("adding")
+				return Object.assign({}, state, {
+					players: [
+					...state.players,
+						action.player
+					]
+				})
+			case DELETE_PLAYER:
+				console.log("deleting", action.data)
+
+				return Object.assign({}, state, {
+					players: state.players.filter(i => i.id !== action.id)
+				})
+
+			case CHANGE_PLAYER_ACTIVE:
+				console.log("changing")
+				return Object.assign({}, state, {
+					players: state.players.map(i => i.id === action.data.id ? {...i, active: action.data.active}:i)
+				})
+			default:
+				return state
+		}
+	}
+
+	const store = createStore(playerApp);
+
+	const unsubscribe = store.subscribe(()=>{
+		console.log(store.getState())
+	})
+
+	store.dispatch(addPlayer({id:1, name:"awd",active:true}))
+	store.dispatch(addPlayer({id:2, name:"aoasfgj",active:false}))
+	store.dispatch(deletePlayer(1))
+	store.dispatch(changePlayerActivity({id:2, active:true}))
+	unsubscribe()
+</script>
