@@ -1,0 +1,252 @@
+<html>
+
+<head>
+	<title>Hockey! exercise 9.2</title>
+</head>
+
+<body>
+	<p>Hockey players</p>
+	<div id="allPlayers"></div>
+	<div id="player"></div>
+	<div id="selected"></div>
+
+
+	<!-- JAVASCRIPT  -->
+
+	<script src="https://unpkg.com/redux@latest/dist/redux.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+	<script src="https://unpkg.com/redux-thunk@latest/dist/redux-thunk.min.js"></script>
+	<script type="text/babel">
+
+	const { createStore, combineReducers,applyMiddleware, compose } = Redux;
+	const thunkMiddleware = ReduxThunk.default;
+
+	const PLAYER_URL = "http://localhost:3000/api/players/"
+	const REQUEST_PLAYERS = 'REQUEST_PLAYERS'
+	const RECEIVE_PLAYERS = 'RECEIVE_PLAYERS'
+	const REQUEST_PLAYER = 'REQUEST_PLAYER'
+	const RECEIVE_PLAYER = 'RECEIVE_PLAYER'
+	const ERROR = 'ERROR'
+
+	const requestPlayers = (id) => {
+		return {
+			type:REQUEST_PLAYERS,
+			id
+		}
+	}
+
+	const receivePlayers = (data) => {
+		console.log("received data = ", data.players)
+		return {
+			type: RECEIVE_PLAYERS,
+			data:data.players,
+			receivedAt: Date.now()
+		}
+	}
+
+	const requestPlayer = (data) => {
+		return {
+			type:REQUEST_PLAYER,
+			data
+		}
+	}
+
+	const receivePlayer = (data) => {
+		console.log("receive player received data = ", data)
+		return {
+			type: RECEIVE_PLAYER,
+			data:data,
+			receivedAt: Date.now()
+		}
+	}
+
+	const error = (error) => {
+		console.log("error: ",err)
+		return {
+			type: ERROR,
+			error
+		}
+
+	}
+
+	const addPlayer = (player) => {
+		return {type:ADD_PLAYER, player:player }
+	}
+	
+	const changeActivePlayer = (player) => {
+		return {type:SET_ACTIVE_PLAYER, selected:player}
+	}
+
+	const playerReducer = (state = {isFetching:true,didInvalidate: false, players:[]}, action) => {
+		switch(action.type){
+			case REQUEST_PLAYERS:
+				console.log("requesting")
+				return Object.assign({}, state, {
+					...state,
+					isFetching:true,
+					didInvalidate:false
+				})
+			case RECEIVE_PLAYERS:
+				console.log("receiving", action)
+				return Object.assign({}, state, {
+					...state,
+					isFetching:false,
+					didInvalidate:false,
+					players: 
+						action.data.players
+					,
+					lastUpdated:action.receivedAt
+				})
+			case ERROR:
+				console.log("ERROR")
+				return Object.assign({}, state), {
+					...state,
+					isFetching:false,
+					didInvalidate:true,
+					error: action.error,
+					players:[],
+					lastUpdated:action.receivedAt
+				}
+
+			default:
+				return state
+		}
+	}
+
+	const activePlayer = (state={selected:{}}, action)=>{
+		switch(action.type){
+			case REQUEST_PLAYER:
+				return Object.assign({}, state, {
+					...state,
+					isFetching:true,
+					didInvalidate:false
+				})
+			case RECEIVE_PLAYER: 
+				console.log("rec", action)
+				return Object.assign({}, state, {
+					...state,
+					isFetching:false,
+					didInvalidate:false,
+					selected: action.data,
+					lastUpdated:action.receivedAt
+				})
+			case ERROR:
+				return Object.assign({}, state), {
+					...state,
+					isFetching:false,
+					didInvalidate:true,
+					error: action.error,
+					players:[],
+					lastUpdated:action.receivedAt
+				}
+
+			default:
+				return state
+		}
+	}
+
+	const playerApp = combineReducers({
+		playerReducer,
+		activePlayer
+	})
+
+	const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose
+
+	const store = createStore(playerApp,composeEnhancers((applyMiddleware(thunkMiddleware))))
+
+	const unsubscribe = store.subscribe(()=>{
+		if (!store.getState().playerReducer.didInvalidate && !store.getState().activePlayer.didInvalidate){
+			listPlayers()
+		}
+		else if (store.getState().playerReducer.didInvalidate){
+			console.log("ERROR",store.getState().playerReducer.error)
+			err(store.getState().playerReducer.error)
+		}
+		else if (store.getState().activePlayer.didInvalidate){
+			console.log("ERROR",store.getState().activePlayer.error)
+			err(store.getState().activePlayer.error)	
+		}
+	})
+
+	const err = (error) => {
+		const hook = document.getElementById("allPlayers")
+		hook.innerHTML = error
+	}
+
+	function fetchPlayers() {
+		return dispatch => {
+		dispatch(requestPlayers())
+		return fetch(PLAYER_URL)
+		.then(response => response.json())
+		.then(json => dispatch(receivePlayers(json)))
+		.catch(err => dispatch(error(err)))
+		}}
+
+	function fetchPlayer(id) {
+		return dispatch => {
+		dispatch(requestPlayer(id))
+		console.log(PLAYER_URL+id)
+		return fetch(PLAYER_URL+id)
+		.then(response => response.json())
+		.then(json => dispatch(receivePlayer(json)))
+		.then(res => updateSelected())
+		.catch(err => dispatch(error(err)))
+		}}
+	
+
+
+	const listPlayers = ()=> {
+		const hook = document.getElementById("allPlayers")
+		hook.innerHTML = ""
+		let players = store.getState().playerReducer.players
+
+		for (let i in players){
+			let p = createPlayerElement(players[i])
+			hook.appendChild(p)
+		}
+		console.log("players", players)
+	}
+
+	const createPlayerElement = (player) => {
+		let button = document.createElement("button")
+		button.innerText = player.name
+		button.setAttribute("style", "display:block;margin:2px;")
+		button.addEventListener('click', () => {
+			setActive(player._id)
+		})
+		return button
+	}
+
+	const setActive = (id) => {
+		const hook  = document.getElementById("player")
+		store.dispatch(fetchPlayer(id))
+		updateSelected()
+		console.log("setting active", player)
+	}
+
+
+
+	const updateSelected = () =>{
+		
+		const hook = document.getElementById("selected")
+		const player = store.getState().activePlayer.selected
+
+		if (Object.entries(player).length === 0){
+			hook.innerHTML = ""
+			return
+		} 
+		const {id, name, active} = player
+
+		hook.innerHTML = ""
+		const p = document.createElement("p")
+		p.innerHTML = `Name: ${name} active: ${active}`
+		hook.appendChild(p)
+	}
+
+	store.dispatch(fetchPlayers())
+
+	//unsubscribe()
+</script>
+</body>
+
+</html>
