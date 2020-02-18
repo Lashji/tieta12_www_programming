@@ -1,15 +1,12 @@
 <html>
 
 <head>
-	<title>Hockey! exercise 9.2</title>
+	<title>Hockey! exercise 10.1</title>
 </head>
 
 <body>
 
 	<div id="root"></div>
-
-
-	<!-- JAVASCRIPT  -->
 
 	<script src="https://unpkg.com/react@16/umd/react.development.js"></script>
 	<script src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
@@ -20,24 +17,191 @@
 
 		const { createStore, combineReducers } = Redux;
 	const {connect, Provider} = ReactRedux;
+	const {useState} = React
+
 	const ADD_PLAYER = 'ADD_PLAYER'
 	const DELETE_PLAYER = 'DELETE_PLAYER'
 	const CHANGE_PLAYER_ACTIVE = 'CHANGE_PLAYER_ACTIVE'
 	const SET_ACTIVE_PLAYER = 'SET_ACTIVE_PLAYER'
 
 
+	const addPlayer = (player) => {
+		return {type:ADD_PLAYER, player:player }
+	}
+	const deletePlayer = (id) => {
+		return {type:DELETE_PLAYER, id:id }
+	}
+	const changePlayerActivity = (player) => {
+		return {type:CHANGE_PLAYER_ACTIVE, player:player }
+	}
+	const changeActivePlayer = (player) => {
+		return {type:SET_ACTIVE_PLAYER, selected:player}
+	}
 
-	const App = () => {
+	const initialState = {
+		players : [],
+		count: 0
+	}
+	
+	const playerReducer = (state = initialState, action) => {
+		switch(action.type){
+			case ADD_PLAYER:
+				console.log("adding")
+				return Object.assign({}, state, {
+				...state,
+				count: state.count +1,
+				players: [
+				...state.players,
+				action.player
+				]
+			})
+		case DELETE_PLAYER:
+			console.log("deleting", action.id)
+			return Object.assign({}, state, {
+				players: state.players.filter(i => i.id !== action.id)
+			})
 		
+		case CHANGE_PLAYER_ACTIVE:
+			console.log("changing")
+			return Object.assign({}, state, {
+			players: state.players.map(i => i.id === action.player.id ? action.player:i)
+			})
+		default:
+			return state
+		}
+	}
+	
+	const activePlayer = (state={selected:{}}, action)=>{
+		switch(action.type){
+			case SET_ACTIVE_PLAYER:
+				console.log("setting")
+				return Object.assign({}, state, {
+				...state,
+				selected: action.selected
+				})
+			case CHANGE_PLAYER_ACTIVE:
+				console.log("setting")
+				return Object.assign({}, state, {
+				...state,
+				selected: action.player
+				})
+			case DELETE_PLAYER:
+				console.log("deleting", action.id)
+				return Object.assign({}, state, {
+					selected: {}
+			})
+			default:
+				return state
+		}
+	}
+	
+	const playerApp = combineReducers({
+		playerReducer,
+		activePlayer
+	})
+	
+	const store = createStore(playerApp, window.__REDUX_DEVTOOLS_EXTENSION__ &&
+	 window.__REDUX_DEVTOOLS_EXTENSION__());
+	
+	const unsubscribe = store.subscribe(()=>{
+		console.log("store = ",store.getState())
+	})
+
+	const Player = ({player, changeActivePlayer}) => {
+		const {name, id} = player
 		return (
-			<h1>Hockey Players</h1>
+			<div style={{margin:"5px"}}>
+				<button onClick={() => changeActivePlayer(player)}>{name}</button>
+			</div>
 		)
 	}
+	
+	const Players = ({players, changeActivePlayer}) => {
+		const playersArray = players.map(i => <Player key={i.id} changeActivePlayer={changeActivePlayer} player={i} />)
+		return (
+			<div>
+				{playersArray}
+			</div>
+		)
+	}
+
+	const ActivePlayer = ({player, changePlayerActivity, deletePlayer}) => {
+
+		const styles = {
+			marginTop: "10px"
+		}
+
+		if (player == undefined || Object.entries(player).length === 0)
+			return <div style={styles}>No player selected</div>
+		let activeBtn
+		if (player.active)
+			activeBtn = <button style={{marginLeft:"10px"}} onClick={() => changePlayerActivity({...player, active:false})}>Deactivate</button>
+			
+		return (
+			<div style={styles}>
+				<p >Name:  {player.name} Active: {""+player.active}
+					{activeBtn}
+					<button onClick={() => deletePlayer(player.id)}>Delete</button> </p>
+			</div>
+		)
+	}
+
+	const Form = ({addPlayer, id}) => {
+
+		const [name, setName] = useState("")
+		const [active, setActive ] = useState(false)
+		
+		const styles = {
+			marginTop: "15px"
+		}
+
+		return (
+			<div style={styles}>
+				<form id="addPlayerForm">
+					Name: <input onChange={e => setName(e.target.value)} id="name-input" type="text" name="name" />
+					<br/> Active: <input onChange={e => setActive(e.target.checked)} id="active-input" type="checkbox" name="active" />
+					<button id="add" type="button" value="Add" onClick={() => addPlayer({id, name, active})}>Add a player</button>
+				</form>
+			</div>
+		)
+	}
+
+	const Container = ({nextId, players, addPlayer, activePlayer, deletePlayer, changePlayerActivity, changeActivePlayer}) => {
+		return (
+			<div>
+			<h1>Hockey Players</h1>
+				<Players changeActivePlayer={changeActivePlayer} players={players}/>
+				<ActivePlayer 
+				changePlayerActivity={changePlayerActivity} 
+				deletePlayer={deletePlayer}
+				player={activePlayer} />
+				<Form id={nextId} addPlayer={addPlayer} />
+			</div>
+		)
+	}
+
+	const mapStateToProps = state => console.log("state", state) || ({
+		players: state.playerReducer.players,
+		nextId: state.playerReducer.count,
+		activePlayer: state.activePlayer.selected
+	})
+
+	const mapDispatchToProps = {
+		addPlayer,
+		deletePlayer,
+		changePlayerActivity,
+		changeActivePlayer
+	}
+
+	const App = connect(
+		mapStateToProps,
+		mapDispatchToProps
+	)(Container)
 	
 	
 
 	ReactDOM.render(
-		<Provider store={}>
+		<Provider store={store}>
 			<App/>
 		</Provider>,
 
@@ -48,161 +212,3 @@
 </body>
 
 </html>
-
-
-<!-- const addPlayer = (player) => {
-	return {type:ADD_PLAYER, player:player }
-}
-const deletePlayer = (id) => {
-	return {type:DELETE_PLAYER, id:id }
-}
-const changePlayerActivity = (player) => {
-	return {type:CHANGE_PLAYER_ACTIVE, player:player }
-}
-const changeActivePlayer = (player) => {
-	return {type:SET_ACTIVE_PLAYER, selected:player}
-}
-
-const playerReducer = (state = {players:[]}, action) => {
-	switch(action.type){
-		case ADD_PLAYER:
-			console.log("adding")
-			return Object.assign({}, state, {
-				players: [
-				...state.players,
-					action.player
-				]
-			})
-		case DELETE_PLAYER:
-			console.log("deleting", action.id)
-
-			return Object.assign({}, state, {
-				players: state.players.filter(i => i.id !== action.id)
-			})
-
-		case CHANGE_PLAYER_ACTIVE:
-			console.log("changing")
-			return Object.assign({}, state, {
-				players: state.players.map(i => i.id === action.player.id ? action.player:i)
-			})
-		default:
-			return state
-	}
-}
-
-const activePlayer = (state={selected:{}}, action)=>{
-	switch(action.type){
-		case SET_ACTIVE_PLAYER:
-			return Object.assign({}, state, {
-				...state,
-				selected: action.selected
-			})
-		default:
-			return state
-	}
-}
-
-const playerApp = combineReducers({
-	playerReducer,
-	activePlayer
-})
-
-const store = createStore(playerApp, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
-
-const unsubscribe = store.subscribe(()=>{
-	listPlayers()
-	console.log("store = ",store.getState())
-})
-
-
-const listPlayers = ()=> {
-	const hook = document.getElementById("allPlayers")
-	hook.innerHTML = ""
-	let players = store.getState().playerReducer.players
-
-	for (let i in players){
-		let p = createPlayerElement(players[i])
-		hook.appendChild(p)
-	}
-	console.log("players", players)
-}
-
-const createPlayerElement = (player) => {
-	let button = document.createElement("button")
-	button.innerText = player.name
-	button.setAttribute("style", "display:block;margin:2px;")
-	button.addEventListener('click', () => {
-		setActive(player)
-	})
-	return button
-}
-
-const setActive = (player) => {
-	const hook  = document.getElementById("player")
-	store.dispatch(changeActivePlayer(player))
-	updateSelected()
-	console.log("setting active", player)
-}
-
-const add = () => {
-	const name = document.getElementById("name-input").value
-	const active = document.getElementById("active-input").checked
-	console.log(name)
-	store.dispatch(addPlayer({id:getNewId(),name: name,active: active}))
-	listPlayers()
-}
-
-const getNewId = () => {
-	return store.getState().playerReducer.players.length+1
-}
-
-const updateSelected = () =>{
-	
-	const hook = document.getElementById("selected")
-	const player = store.getState().activePlayer.selected
-
-	if (Object.entries(player).length === 0){
-		hook.innerHTML = ""
-		return
-	} 
-	const {id, name, active} = player
-
-	hook.innerHTML = ""
-	const p = document.createElement("p")
-	p.innerHTML = `Name: ${name} active: ${active}`
-	hook.appendChild(p)
-
-	if (active){
-		const btn = document.createElement("input")
-		btn.setAttribute("type", "button")
-		btn.setAttribute("value", "Deactive Player")
-		btn.setAttribute("style", "margin: 5px;")
-		btn.addEventListener('click', () => {
-			player.active = false
-			store.dispatch(changePlayerActivity(player))
-			store.dispatch(changeActivePlayer(player))
-			updateSelected()	
-		})
-		p.appendChild(btn)
-		
-	}
-
-	const btn = document.createElement("input")
-	btn.setAttribute("type", "button")
-	btn.setAttribute("value", "Delete Player")
-	btn.setAttribute("style", "margin: 5px;")
-	btn.addEventListener('click', () => {
-		store.dispatch(deletePlayer(id))
-		console.log("p = ", player)
-		store.dispatch(changeActivePlayer({}))
-		listPlayers()
-		updateSelected()	
-	})
-	p.appendChild(btn)
-}
-
-
-store.dispatch(addPlayer({id:1, name:"awd",active:true}))
-store.dispatch(addPlayer({id:2, name:"awdasddas",active:true}))
-store.dispatch(addPlayer({id:3, name:"awdjftyjyft",active:true}))
-unsubscribe() -->

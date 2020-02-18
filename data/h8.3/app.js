@@ -3,8 +3,8 @@ const express = require("express");
 const app = express();
 const helmet = require("helmet");
 const mongoose = require("mongoose");
-const Player = require("./player");
-const User = require("./user");
+const Player = require("../h10.2/player");
+const User = require("../h10.2/user");
 var api = express.Router();
 const ALL_PLAYERS_HREF = "http://localhost:3000/api/players";
 
@@ -32,7 +32,6 @@ app.use((req, res, next) => {
 const authFailed = res => {
   console.log("auth failed");
   return res
-    // .set("WWW-Authenticate", "Basic realm=Authorization Required")
     .sendStatus(401);
 };
 
